@@ -25,9 +25,9 @@ const isConect =async()=>{
 const models = setupModels(sequelize);
 isConect().then();
 
-// sequelize.sync({
-//     force:true
-// }).then()  
+sequelize.sync({
+    force:true
+}).then()  
 // // sequelize.sync().then();
 
 
