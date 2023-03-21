@@ -31,7 +31,7 @@ const ProfileSchema:ModelAttributes<Profile, Optional<InferAttributes<Profile, {
     },
     phone:{
         allowNull:false,
-        type:DataTypes.INTEGER,
+        type:DataTypes.BIGINT,
     },
     userId:{
         field:'user_id',

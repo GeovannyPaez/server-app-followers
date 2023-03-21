@@ -1,5 +1,6 @@
 import express from 'express';
 import passport, { session } from 'passport';
+import { json } from 'sequelize';
 import { IPayloadToken } from '../services/auth.service';
 import { UserService } from '../services/user.service';
 
@@ -7,21 +8,27 @@ const service = new UserService();
 const router = express.Router();
 
 
-router.get('/', async (req, res, next) => {
-    try {
-        const search = req.query.search;
-        if (search) {
-            const usersFilters = await service.searchUser(search as string);
-            res.json(usersFilters);
-            return;
+router.get(
+
+    '/',
+    passport.authenticate('jwt', { session: false }),
+    async (req, res, next) => {
+        try {
+            const search = req.query.search;
+            const payloadToken = req.user as IPayloadToken;
+            const userId = Number(payloadToken.id);
+            if (search) {
+                const usersFilters = await service.searchUser(search as string,userId);
+                res.json(usersFilters);
+                return;
+            }
+            const users = await service.allUsers();
+            // await service.createFollower(1);}
+            res.json(users);
+        } catch (error) {
+            next(error)
         }
-        const users = await service.allUsers();
-        // await service.createFollower(1);}
-        res.json(users);
-    } catch (error) {
-        next(error)
-    }
-})
+    })
 router.post('/register-follower',
     passport.authenticate('jwt', { session: false }),
     async (req, res, next) => {

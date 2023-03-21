@@ -13,7 +13,33 @@ export type IRegisterFollower = {
 }
 export class UserService {
     async allUsers() {
-        return await models.User.findAll({ attributes: { exclude: ['password'] }, include: [{ model: Profile, as: 'profile', attributes: { exclude: ['followerId'] } }], });
+        return await models.User.findAll({
+            attributes: { exclude: ['password'] },
+            include: [
+                {
+                    model: Profile, as: 'profile',
+                    attributes: { exclude: ['followerId'] }
+                },
+                {
+                    model: Seguidor,
+                    as: 'followersUsers',
+                    include: [{
+                        model: User,
+                        as: 'user',
+                        attributes: { exclude: ['password'] },
+                        include: [
+                            {
+                                model: Profile,
+                                as: 'profile',
+                                attributes: {
+                                    exclude: ['followerId']
+                                }
+                            }
+                        ]
+                    }]
+                }
+            ],
+        });
     }
 
     async createFollower(user_id: number, profile: IRegisterFollower) {
@@ -58,9 +84,11 @@ export class UserService {
                 {
                     model: Seguidor,
                     as: 'followersUsers',
+                    // attributes:{exclude:['fo']},
                     include: [{
                         model: User,
                         as: 'user',
+                        attributes: { exclude: ['password'] },
                         include: [
                             {
                                 model: Profile,
@@ -72,7 +100,7 @@ export class UserService {
                         ]
                     }]
                 }
-                
+
             ]
         }
         );
@@ -97,25 +125,58 @@ export class UserService {
                 idFollowed,
                 idFollower
             });
-            return res;
+            return {isFollowing:true,...res.dataValues};
         }
         await userIsFollow.destroy();
-        return { message: 'unfollow to user with id: ' + idFollowed };
+        return { message: 'unfollow to user with id: ' + idFollowed,isFollowing:false };
     }
-    async searchUser(nameOrEmail: string, userId = undefined) {
+    async searchUser(nameOrEmail: string, userId: undefined | number = undefined) {
         const users = await this.allUsers();
-        const usersFiltrados = users.filter(user => user.email.includes(nameOrEmail) || user.profile.name.includes(nameOrEmail));
+        const usersFiltrados = users.filter(user =>{
+            const userNameLowerCase = user.profile.name.toLowerCase();
+            if(user.email.includes(nameOrEmail.toLowerCase()) || userNameLowerCase.includes(nameOrEmail.toLowerCase())){
+                return user
+            } ;
+        });
+        const following = await models.Seguidor.findAll({
+            where: {
+                idFollower: userId
+            }
+        });
+
+        // console.log('following',following);
         if (!userId) {
             return usersFiltrados;
         }
-        const followeds = await models.Seguidor.findAll({
-            where:{
-                idFollower:userId
-            }
-        });
-        // const usersWithIsFollow = usersFiltrados.map(user=>{
-        //     if(user.id === )
-        // })
+
+        if(following.length > 0){
+            const userWithIsFollow = usersFiltrados.map(user => {
+                let newUserInfo: unknown;
+                following.forEach(element => {
+                    if (user.followersUsers.length > 0) {
+    
+                        user.followersUsers.forEach(follower => {
+                            if (follower.idFollower === element.idFollower) {
+                                newUserInfo = { ...user.dataValues, isFollowing: true }
+                            } else {
+                                newUserInfo = { ...user.dataValues, isFollowing: false };
+                            }
+                        })
+                    } else {
+                        newUserInfo = { ...user.dataValues, isFollowing: false }
+                    }
+                });
+                return newUserInfo;
+            })
+            // console.log(userWithIsFollow);
+            return userWithIsFollow;
+        }
+        else {
+            return usersFiltrados.map(user=>{
+                return {...user.dataValues,isFollowing:false}
+            })
+        }
+
     }
     async getByEmail(email: string) {
         return await models.User.findOne({ where: { email } });
