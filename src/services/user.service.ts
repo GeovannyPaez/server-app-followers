@@ -132,8 +132,10 @@ export class UserService {
     }
     async searchUser(nameOrEmail: string, userId: undefined | number = undefined) {
         const users = await this.allUsers();
+        console.log(nameOrEmail)
         const usersFiltrados = users.filter(user =>{
-            const userNameLowerCase = user.profile.name.toLowerCase();
+            const userNameLowerCase = user.profile?.name.toLowerCase();
+            console.log(userNameLowerCase);
             if(user.email.includes(nameOrEmail.toLowerCase()) || userNameLowerCase.includes(nameOrEmail.toLowerCase())){
                 return user
             } ;
